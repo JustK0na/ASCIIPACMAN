@@ -1,0 +1,59 @@
+#include <stdio.h>
+#include <termios.h>
+#include <unistd.h>
+#include <stdlib.h>
+
+// Function to disable canonical mode and echo
+void enable_raw_mode() {
+    struct termios term;
+    tcgetattr(STDIN_FILENO, &term);
+
+    // Disable canonical mode and echo
+    term.c_lflag &= ~(ICANON | ECHO);
+
+    // Apply changes
+    tcsetattr(STDIN_FILENO, TCSANOW, &term);
+}
+
+// Function to reset the terminal to its original state
+void disable_raw_mode() {
+    struct termios term;
+    tcgetattr(STDIN_FILENO, &term);
+
+    // Re-enable canonical mode and echo
+    term.c_lflag |= (ICANON | ECHO);
+
+    // Apply changes
+    tcsetattr(STDIN_FILENO, TCSANOW, &term);
+}
+
+int main() {
+    // Enable raw mode
+    enable_raw_mode();
+
+    // Clear the screen initially
+    printf("\033[2J\033[H"); // ANSI escape code to clear screen and move cursor to home
+
+    printf("Press any key (Ctrl+C to exit):\n");
+
+    char key;
+    while (1) {
+        // Read a single character from the terminal
+        if (read(STDIN_FILENO, &key, 1) == -1) {
+            perror("read");
+            exit(EXIT_FAILURE);
+        }
+
+        // Clear the terminal and print the pressed key
+        printf("\033[2J\033[H"); // Clear screen and move cursor to home
+        printf("You pressed: '%c' (ASCII: %d)\n", key, key);
+
+        if (key == '\n') {
+            printf("Press Enter again to confirm exit or another key to continue...\n");
+        }
+    }
+
+    // Disable raw mode before exiting
+    disable_raw_mode();
+    return 0;
+}
