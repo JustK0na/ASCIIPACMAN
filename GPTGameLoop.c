@@ -2,24 +2,58 @@
 #include <termios.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <fcntl.h>
+
+
+struct termios enableRAWmode(){
+  struct termios oldConf;
+  struct termios rawConf;
+  
+  tcgetattr(STDIN_FILENO, &oldConf);
+  tcgetattr(STDIN_FILENO, &rawConf);
+
+  rawConf.c_lflag &= ~(ICANON | ECHO);
+
+  tcsetattr(STDIN_FILENO,TCSANOW ,&rawConf);
+  printf("\033[?25l");
+
+  //fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
+
+  return oldConf;
+};
+
+struct termios escapeRAWmode(struct termios oldConf){
+  struct termios rawConf;
+  tcgetattr(STDIN_FILENO, &rawConf);
+
+  tcsetattr(STDIN_FILENO,TCSANOW ,&oldConf);
+  printf("\033[2J\033[H\033[?25h");
+  
+  return rawConf;
+}
+
 
 int main() {
-    printf("\033[2J\033[H"); // ANSI escape code to clear screen and move cursor to home
 
-    printf("#######################\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nPress any key (Ctrl+C to exit):\n");
+  struct termios oldConf = enableRAWmode();
+  int a = 0;  
 
-    char key;
-    while (1) {
-        // Read a single character from the terminal
-        if (read(STDIN_FILENO, &key, 1) == -1) {
-            perror("reading failed");
-            exit(EXIT_FAILURE);
-        }
-        // Clear the terminal and print the pressed key
-        printf("\033[2J\033[H"); // Clear screen and move cursor to home
-        printf("\aYou pressed: '%c' (ASCII: %d)\n", key, key);
-        printf("a");
+  char key;
+  while (1) {
+    a++;
+    if(read(STDIN_FILENO, &key, 1)==-1){
+      perror("couldn't read");
+      exit(-1);
     }
+    if(key=='q')
+      break;
 
-    return 0;
+    printf("\033[2J\033[H");
+    printf("somethinf %d", a);
+    fflush(stdout);
+  }
+
+  escapeRAWmode(oldConf);
+
+  return 0;
 }
